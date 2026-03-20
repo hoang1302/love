@@ -265,9 +265,25 @@ export default function DiaryPage() {
                     const isViewerPartner1 = user?.uid === couple?.partner1Id;
                     const myName = isViewerPartner1 ? couple?.partner1Name : couple?.partner2Name;
                     const theirName = isViewerPartner1 ? couple?.partner2Name : couple?.partner1Name;
-                    return entry.authorId === user?.uid ? (myName || 'Bạn') : (theirName || 'Người ấy');
+                    
+                    const myAvatar = isViewerPartner1 ? couple?.partner1Avatar : couple?.partner2Avatar;
+                    const theirAvatar = isViewerPartner1 ? couple?.partner2Avatar : couple?.partner1Avatar;
+                    
+                    const avatar = entry.authorId === user?.uid ? myAvatar : theirAvatar;
+                    const name = entry.authorId === user?.uid ? (myName || 'Bạn') : (theirName || 'Người ấy');
+                    
+                    return (
+                      <>
+                        {avatar ? (
+                          <img src={avatar} alt="avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'white' }}>{name.charAt(0)}</div>
+                        )}
+                        <span>{name}</span>
+                      </>
+                    )
                   })()}
-                  {entry.mood && <span>{entry.mood}</span>}
+                  {entry.mood && <span style={{ marginLeft: '4px' }}>{entry.mood}</span>}
                 </span>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                   {entry.dateStr}

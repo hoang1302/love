@@ -13,6 +13,12 @@ interface CoupleData {
   partner2Id: string | null;
   partner1Name?: string;
   partner2Name?: string;
+  partner1Avatar?: string;
+  partner2Avatar?: string;
+  backgroundUrl?: string;
+  passcode?: string;
+  isOnline_partner1?: boolean;
+  isOnline_partner2?: boolean;
   streak: number;
   lastPostDate_partner1?: any;
   lastPostDate_partner2?: any;
