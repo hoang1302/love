@@ -99,8 +99,25 @@ export default function DashboardLayout({
           padding: '20px'
         }}>
           <div className="glass-panel fade-in" style={{ width: '100%', maxWidth: '400px', padding: '24px' }}>
-            <h3 style={{ marginBottom: '16px' }}>Đổi biệt danh</h3>
+            <h3 style={{ marginBottom: '16px' }}>Cài đặt</h3>
             
+            <div style={{ marginBottom: '20px', padding: '12px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Mã phòng cặp đôi:</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  value={couple?.id || ""} 
+                  readOnly
+                  style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', background: 'rgba(0,0,0,0.2)', border: 'none', color: '#ffb2c8', outline: 'none', fontWeight: 'bold', letterSpacing: '2px', textAlign: 'center' }}
+                />
+                <button 
+                  onClick={() => { navigator.clipboard.writeText(couple?.id || ""); alert("Đã copy mã phòng!"); }}
+                  style={{ padding: '0 12px', borderRadius: '6px', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', cursor: 'pointer' }}
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+
             <div style={{ marginBottom: '12px' }}>
               <label style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)', display: 'block', marginBottom: '6px' }}>Biệt danh của bạn:</label>
               <input 

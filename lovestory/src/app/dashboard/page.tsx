@@ -110,9 +110,6 @@ export default function DashboardOverview() {
           {days}
         </div>
         <p style={{ marginTop: '10px', fontSize: '1.2rem' }}>ngày</p>
-        <p style={{ marginTop: '20px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-          Mã phòng cặp đôi: {couple.id}
-        </p>
       </div>
 
       {/* Countdown Events */}
