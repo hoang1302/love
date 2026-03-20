@@ -1,0 +1,84 @@
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  text-align: center;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  font-weight: 300;
+  margin-bottom: var(--spacing-xl);
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+}
+
+.loginBox {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.loginBox h2 {
+  font-size: 1.5rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.loginBox p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-md);
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.codeInput {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 1rem;
+  outline: none;
+  text-align: center;
+  letter-spacing: 2px;
+  transition: all 0.2s;
+}
+
+.codeInput::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0;
+}
+
+.codeInput:focus {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 10px rgba(255,255,255,0.2);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: var(--spacing-sm) 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.divider::before, .divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.divider span {
+  padding: 0 10px;
+}
