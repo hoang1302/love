@@ -6,7 +6,7 @@ import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, update
 import { db } from '@/lib/firebase/config';
 
 export default function BucketListPage() {
-  const { couple, loading } = useLoveStory();
+  const { couple, user, loading } = useLoveStory();
   const [items, setItems] = useState<any[]>([]);
   const [newItem, setNewItem] = useState("");
 
@@ -30,17 +30,35 @@ export default function BucketListPage() {
       await addDoc(collection(db, `Couples/${couple.id}/BucketList`), {
         title: newItem,
         isCompleted: false,
+        completedBy_partner1: false,
+        completedBy_partner2: false,
         createdAt: serverTimestamp()
       });
       setNewItem("");
     } catch(err) {}
   };
 
-  const toggleComplete = async (id: string, currentStatus: boolean) => {
-    if (!couple?.id) return;
-    await updateDoc(doc(db, `Couples/${couple.id}/BucketList`, id), {
-      isCompleted: !currentStatus,
-      completedAt: !currentStatus ? serverTimestamp() : null
+  const toggleMyTick = async (item: any) => {
+    if (!couple?.id || !user) return;
+    const isPartner1 = user.uid === couple.partner1Id;
+
+    // Lấy trạng thái tương thích dữ liệu cũ
+    let currentP1 = item.completedBy_partner1 !== undefined ? item.completedBy_partner1 : item.isCompleted;
+    let currentP2 = item.completedBy_partner2 !== undefined ? item.completedBy_partner2 : item.isCompleted;
+    
+    let newP1 = currentP1;
+    let newP2 = currentP2;
+
+    if (isPartner1) newP1 = !newP1;
+    else newP2 = !newP2;
+
+    const isCompleted = newP1 && newP2;
+
+    await updateDoc(doc(db, `Couples/${couple.id}/BucketList`, item.id), {
+      completedBy_partner1: newP1,
+      completedBy_partner2: newP2,
+      isCompleted: isCompleted,
+      completedAt: isCompleted ? serverTimestamp() : null
     });
   };
 
@@ -82,29 +100,57 @@ export default function BucketListPage() {
       </form>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {items.map(item => (
-          <div key={item.id} className="glass-panel" style={{ padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: item.isCompleted ? 0.6 : 1, transition: 'opacity 0.3s' }}>
+        {items.map(item => {
+          const isPartner1 = user?.uid === couple?.partner1Id;
+          const myName = isPartner1 ? (couple?.partner1Name || "Bạn") : (couple?.partner2Name || "Bạn");
+          const theirName = isPartner1 ? (couple?.partner2Name || "Người ấy") : (couple?.partner1Name || "Người ấy");
+
+          const currentP1 = item.completedBy_partner1 !== undefined ? item.completedBy_partner1 : item.isCompleted;
+          const currentP2 = item.completedBy_partner2 !== undefined ? item.completedBy_partner2 : item.isCompleted;
+
+          const myTick = isPartner1 ? currentP1 : currentP2;
+          const theirTick = isPartner1 ? currentP2 : currentP1;
+
+          return (
+          <div key={item.id} className="glass-panel" style={{ padding: '16px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', opacity: item.isCompleted ? 0.6 : 1, transition: 'opacity 0.3s' }}>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-              <input 
-                type="checkbox" 
-                checked={item.isCompleted} 
-                onChange={() => toggleComplete(item.id, item.isCompleted)}
-                style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#ff4b82' }}
-              />
-              <span style={{ fontSize: '1rem', textDecoration: item.isCompleted ? 'line-through' : 'none' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
+              <span style={{ fontSize: '1rem', textDecoration: item.isCompleted ? 'line-through' : 'none', fontWeight: item.isCompleted ? 'normal' : '500' }}>
                 {item.title}
               </span>
+              
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={myTick || false} 
+                    onChange={() => toggleMyTick(item)}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#ff4b82' }}
+                  />
+                  <span style={{ color: myTick ? 'var(--primary-color)' : 'var(--text-secondary)' }}>{myName} tick</span>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', opacity: 0.8 }}>
+                  <input 
+                    type="checkbox" 
+                    checked={theirTick || false} 
+                    readOnly
+                    onClick={(e) => { e.preventDefault(); alert("Chỉ người ấy mới có quyền xác nhận mục này của họ!"); }}
+                    style={{ width: '16px', height: '16px', cursor: 'not-allowed', accentColor: '#ff4b82' }}
+                  />
+                  <span style={{ color: theirTick ? 'var(--primary-color)' : 'var(--text-secondary)' }}>{theirName} tick</span>
+                </label>
+              </div>
             </div>
 
             <button 
               onClick={() => deleteItem(item.id)}
-              style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '1.2rem', cursor: 'pointer', padding: '4px' }}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '1.2rem', cursor: 'pointer', padding: '4px', marginLeft: '12px' }}
             >
               ✕
             </button>
           </div>
-        ))}
+        )})}
         {items.length === 0 && (
           <p style={{textAlign: 'center', color: 'var(--text-secondary)', marginTop: '20px'}}>Chưa có mục tiêu nào. Hãy thảo luận và thêm vào nhé!</p>
         )}

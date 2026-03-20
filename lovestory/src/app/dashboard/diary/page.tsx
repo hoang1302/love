@@ -2,8 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { useLoveStory } from '@/context/LoveStoryContext';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
+
+// Helper để parse Firestore Timestamp (tránh lỗi object trắng khi offline)
+const parseFBDate = (val: any) => {
+  if (!val) return null;
+  if (val.toDate) return val.toDate();
+  if (val.seconds) return new Date(val.seconds * 1000);
+  return new Date(val);
+};
+
+const isSameDay = (d1: Date, d2: Date) => {
+  return d1.getFullYear() === d2.getFullYear() &&
+         d1.getMonth() === d2.getMonth() &&
+         d1.getDate() === d2.getDate();
+};
 
 export default function DiaryPage() {
   const { couple, user, loading } = useLoveStory();
@@ -12,6 +26,9 @@ export default function DiaryPage() {
   const [mood, setMood] = useState("🥰");
   const MOODS = ['🥰', '😆', '😊', '😢', '😡', '😮‍💨'];
 
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
   useEffect(() => {
     if (!couple?.id) return;
     const q = query(collection(db, `Couples/${couple.id}/Diaries`), orderBy('date', 'desc'));
@@ -19,9 +36,9 @@ export default function DiaryPage() {
       const docs = snapshot.docs.map(doc => {
         const data = doc.data();
         let dateStr = '';
-        if (data.date) {
-          const dateObj = data.date.toDate ? data.date.toDate() : new Date(data.date);
-          dateStr = dateObj.toLocaleString('vi-VN');
+        const d = parseFBDate(data.date);
+        if (d && !isNaN(d.getTime())) {
+          dateStr = d.toLocaleString('vi-VN');
         }
         return {
           id: doc.id,
@@ -49,12 +66,6 @@ export default function DiaryPage() {
       // 2. Cập nhật Streak
       const isPartner1 = user.uid === couple.partner1Id;
       const today = new Date();
-      
-      const isSameDay = (d1: Date, d2: Date) => {
-        return d1.getFullYear() === d2.getFullYear() &&
-               d1.getMonth() === d2.getMonth() &&
-               d1.getDate() === d2.getDate();
-      };
 
       const updates: any = {};
       
@@ -66,20 +77,21 @@ export default function DiaryPage() {
 
       // Kiểm tra xem người kia đã gửi hôm nay chưa
       const otherPartnerDate = isPartner1 ? couple.lastPostDate_partner2 : couple.lastPostDate_partner1;
+      const otherPartnerDateParsed = parseFBDate(otherPartnerDate);
+      
       let otherPostedToday = false;
-      if (otherPartnerDate) {
-        const d = otherPartnerDate.toDate ? otherPartnerDate.toDate() : new Date(otherPartnerDate);
-        otherPostedToday = isSameDay(today, d);
+      if (otherPartnerDateParsed && !isNaN(otherPartnerDateParsed.getTime())) {
+        otherPostedToday = isSameDay(today, otherPartnerDateParsed);
       }
 
       let streakUpdatedToday = false;
-      if (couple.lastStreakUpdateDate) {
-         const sd = couple.lastStreakUpdateDate.toDate ? couple.lastStreakUpdateDate.toDate() : new Date(couple.lastStreakUpdateDate);
-         streakUpdatedToday = isSameDay(today, sd);
+      const lastUpdateParsed = parseFBDate(couple.lastStreakUpdateDate);
+      if (lastUpdateParsed && !isNaN(lastUpdateParsed.getTime())) {
+         streakUpdatedToday = isSameDay(today, lastUpdateParsed);
       }
 
       if (otherPostedToday && !streakUpdatedToday) {
-        updates.streak = (couple.streak || 0) + 1;
+        updates.streak = increment(1); // Auto increment an toàn
         updates.lastStreakUpdateDate = serverTimestamp();
       }
 
@@ -109,6 +121,20 @@ export default function DiaryPage() {
     link.click();
     document.body.removeChild(link);
   };
+
+  const hasEntry = (date: Date) => {
+    return entries.some(e => {
+       const ed = parseFBDate(e.date);
+       return ed && !isNaN(ed.getTime()) && isSameDay(date, ed);
+    });
+  };
+
+  const displayEntries = entries.filter(e => {
+     if (!selectedDate) return false;
+     const ed = parseFBDate(e.date);
+     if (!ed || isNaN(ed.getTime())) return false;
+     return isSameDay(selectedDate, ed);
+  });
 
   if (loading || !couple) return <div style={{textAlign: 'center', marginTop: '50px'}}>Đang tải...</div>;
 
@@ -171,23 +197,87 @@ export default function DiaryPage() {
         </button>
       </div>
 
-      {/* Diary Timeline */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto' }}>
-        {entries.map(entry => (
-          <div key={entry.id} className="glass-panel" style={{ padding: '16px', borderLeft: entry.authorId === user?.uid ? '4px solid var(--primary-color)' : '4px solid var(--secondary-color)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span style={{ fontWeight: 600, color: entry.authorId === user?.uid ? 'var(--primary-color)' : 'var(--secondary-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {entry.authorId === user?.uid ? 'Bạn' : 'Người ấy'}
-                {entry.mood && <span>{entry.mood}</span>}
-              </span>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                {entry.dateStr}
-              </span>
+      {/* Calendar Section */}
+      <div className="glass-panel" style={{ padding: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.2rem' }}>◀</button>
+          <span style={{ fontWeight: 'bold' }}>Tháng {currentMonth.getMonth() + 1}, {currentMonth.getFullYear()}</span>
+          <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.2rem' }}>▶</button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', textAlign: 'center', marginBottom: '8px' }}>
+          {['CN','T2','T3','T4','T5','T6','T7'].map(d => <div key={d} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{d}</div>)}
+        </div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
+          {(() => {
+             const year = currentMonth.getFullYear();
+             const month = currentMonth.getMonth();
+             const firstDay = new Date(year, month, 1).getDay();
+             const daysInMonth = new Date(year, month + 1, 0).getDate();
+             const cells = [];
+
+             for (let i = 0; i < firstDay; i++) {
+                cells.push(<div key={`empty-${i}`} />);
+             }
+
+             for (let i = 1; i <= daysInMonth; i++) {
+                const d = new Date(year, month, i);
+                const isSelected = selectedDate && isSameDay(d, selectedDate);
+                const isToday = isSameDay(d, new Date());
+                const highlighted = hasEntry(d);
+                
+                cells.push(
+                  <div 
+                    key={`day-${i}`} 
+                    onClick={() => setSelectedDate(d)}
+                    style={{
+                      aspectRatio: '1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      background: isSelected ? 'var(--primary-color)' : (isToday ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)'),
+                      borderRadius: '8px', cursor: 'pointer',
+                      border: isToday ? '1px solid rgba(255,255,255,0.4)' : '1px solid transparent',
+                      position: 'relative'
+                    }}
+                  >
+                    <span style={{ fontSize: '0.9rem', fontWeight: isSelected || isToday ? 'bold' : 'normal' }}>{i}</span>
+                    {highlighted && (
+                      <div style={{ width: '5px', height: '5px', background: isSelected ? 'white' : 'var(--primary-color)', borderRadius: '50%', marginTop: '2px' }} />
+                    )}
+                  </div>
+                );
+             }
+             return cells;
+          })()}
+        </div>
+      </div>
+
+      {/* Diary Timeline for Selected Date */}
+      <div>
+        <h4 style={{ marginBottom: '16px', fontSize: '1.1rem', color: 'var(--text-secondary)' }}>
+           Nhật ký ngày {selectedDate.toLocaleDateString('vi-VN')}
+        </h4>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {displayEntries.map(entry => (
+            <div key={entry.id} className="glass-panel" style={{ padding: '16px', borderLeft: entry.authorId === user?.uid ? '4px solid var(--primary-color)' : '4px solid var(--secondary-color)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 600, color: entry.authorId === user?.uid ? 'var(--primary-color)' : 'var(--secondary-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {(() => {
+                    const isViewerPartner1 = user?.uid === couple?.partner1Id;
+                    const myName = isViewerPartner1 ? couple?.partner1Name : couple?.partner2Name;
+                    const theirName = isViewerPartner1 ? couple?.partner2Name : couple?.partner1Name;
+                    return entry.authorId === user?.uid ? (myName || 'Bạn') : (theirName || 'Người ấy');
+                  })()}
+                  {entry.mood && <span>{entry.mood}</span>}
+                </span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  {entry.dateStr}
+                </span>
+              </div>
+              <p style={{ lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{entry.text}</p>
             </div>
-            <p style={{ lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{entry.text}</p>
-          </div>
-        ))}
-        {entries.length === 0 && <p style={{textAlign: 'center', color: 'var(--text-secondary)'}}>Chưa có dòng nhật ký nào. Hãy viết bài đầu tiên nhé!</p>}
+          ))}
+          {displayEntries.length === 0 && <p style={{textAlign: 'center', color: 'rgba(255,255,255,0.4)', marginTop: '20px'}}>Không có dòng nhật ký nào trong ngày này.</p>}
+        </div>
       </div>
     </div>
   );

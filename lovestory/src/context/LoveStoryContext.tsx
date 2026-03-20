@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase/config';
 import { signInAnonymously, onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, serverTimestamp, updateDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
 
 interface CoupleData {
   id: string; // Vừa là Pair Code vừa là Doc ID
@@ -11,6 +11,8 @@ interface CoupleData {
   anniversaryDate: any;
   partner1Id: string;
   partner2Id: string | null;
+  partner1Name?: string;
+  partner2Name?: string;
   streak: number;
   lastPostDate_partner1?: any;
   lastPostDate_partner2?: any;
@@ -26,6 +28,7 @@ interface LoveStoryContextType {
   logout: () => Promise<void>;
   signupWithEmail: (email: string, pass: string) => Promise<void>;
   loginWithEmail: (email: string, pass: string) => Promise<void>;
+  updateNames: (myName: string, partnerName: string) => Promise<void>;
 }
 
 const LoveStoryContext = createContext<LoveStoryContextType>({} as LoveStoryContextType);
@@ -61,18 +64,55 @@ export function LoveStoryProvider({ children }: { children: React.ReactNode }) {
     setCouple(null);
   };
 
+  const updateNames = async (myName: string, partnerName: string) => {
+    if (!couple || !user) return;
+    const isPartner1 = user.uid === couple.partner1Id;
+    const updates = isPartner1 
+      ? { partner1Name: myName, partner2Name: partnerName }
+      : { partner2Name: myName, partner1Name: partnerName };
+    await updateDoc(doc(db, "Couples", couple.id), updates);
+  };
+
   // 2. Listen for Room Updates if joined
   useEffect(() => {
     if (!user) return;
-    const coupleId = localStorage.getItem('lovestory_paircode');
-    if (coupleId) {
-      const unsub = onSnapshot(doc(db, "Couples", coupleId), (docSnap) => {
-        if (docSnap.exists()) {
-          setCouple({ id: docSnap.id, ...docSnap.data() } as CoupleData);
+    
+    let unsub: (() => void) | null = null;
+
+    const initRoom = async () => {
+      let coupleId = localStorage.getItem('lovestory_paircode');
+
+      if (!coupleId) {
+        // Tìm xem user đã tạo phòng chưa (partner1Id)
+        let q = query(collection(db, "Couples"), where("partner1Id", "==", user.uid), limit(1));
+        let snap = await getDocs(q);
+
+        if (snap.empty) {
+          // Nếu không phải là chủ phòng thì có thể là thành viên thứ 2
+          q = query(collection(db, "Couples"), where("partner2Id", "==", user.uid), limit(1));
+          snap = await getDocs(q);
         }
-      });
-      return () => unsub();
-    }
+
+        if (!snap.empty) {
+          coupleId = snap.docs[0].id;
+          localStorage.setItem('lovestory_paircode', coupleId);
+        }
+      }
+
+      if (coupleId) {
+        unsub = onSnapshot(doc(db, "Couples", coupleId), (docSnap) => {
+          if (docSnap.exists()) {
+            setCouple({ id: docSnap.id, ...docSnap.data() } as CoupleData);
+          }
+        });
+      }
+    };
+
+    initRoom();
+
+    return () => {
+      if (unsub) unsub();
+    };
   }, [user]);
 
   // Create Room
@@ -92,6 +132,8 @@ export function LoveStoryProvider({ children }: { children: React.ReactNode }) {
       anniversaryDate: startObj,
       partner1Id: user.uid,
       partner2Id: null,
+      partner1Name: "Bạn 1",
+      partner2Name: "Bạn 2",
       streak: initialStreak,
       lastStreakUpdateDate: null,
       createdAt: serverTimestamp()
@@ -105,6 +147,8 @@ export function LoveStoryProvider({ children }: { children: React.ReactNode }) {
       anniversaryDate: startObj,
       partner1Id: user.uid,
       partner2Id: null,
+      partner1Name: "Bạn 1",
+      partner2Name: "Bạn 2",
       streak: initialStreak
     });
     
@@ -140,7 +184,7 @@ export function LoveStoryProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <LoveStoryContext.Provider value={{ user, couple, loading, createRoom, joinRoom, logout, signupWithEmail, loginWithEmail }}>
+    <LoveStoryContext.Provider value={{ user, couple, loading, createRoom, joinRoom, logout, signupWithEmail, loginWithEmail, updateNames }}>
       {children}
     </LoveStoryContext.Provider>
   );
