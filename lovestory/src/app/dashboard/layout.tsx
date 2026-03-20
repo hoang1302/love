@@ -1,8 +1,9 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import styles from './dashboard.module.css';
+import { useLoveStory } from '@/context/LoveStoryContext';
 
 export default function DashboardLayout({
   children,
@@ -10,13 +11,39 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { couple, logout } = useLoveStory();
+
+  const handleLogout = async () => {
+    if (window.confirm("Bạn có chắc muốn đăng xuất khỏi tài khoản này?")) {
+      await logout();
+      router.push('/');
+    }
+  };
 
   return (
     <div className={styles.dashboardContainer}>
       <header className={styles.header}>
         <h2>LoveStory</h2>
-        <div className={styles.streakBadge}>
-          🔥 15 Days
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className={styles.streakBadge}>
+            🔥 {couple?.streak || 0} Ngày
+          </div>
+          <button 
+            onClick={handleLogout} 
+            style={{ 
+              background: 'rgba(255, 255, 255, 0.1)', 
+              border: '1px solid rgba(255, 255, 255, 0.2)', 
+              borderRadius: '8px', 
+              color: 'var(--text-secondary)', 
+              padding: '6px 10px',
+              cursor: 'pointer', 
+              fontSize: '0.85rem'
+            }} 
+            title="Đăng xuất"
+          >
+            Thoát
+          </button>
         </div>
       </header>
 
