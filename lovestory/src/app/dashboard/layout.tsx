@@ -5,8 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import styles from './dashboard.module.css';
 import { useLoveStory } from '@/context/LoveStoryContext';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { storage, db } from '@/lib/firebase/config';
+import { db } from '@/lib/firebase/config';
 import { doc, updateDoc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import PasscodeScreen from '@/components/PasscodeScreen';
@@ -69,21 +68,28 @@ export default function DashboardLayout({
       return;
     }
     setUploadingBg(true);
-    const toastId = toast.loading("Đang tải hình nền lên...");
+    const toastId = toast.loading("Đang tải hình nền lên ImgBB...");
     try {
-      const fileRef = ref(storage, `backgrounds/${couple.id}_${Date.now()}`);
-      const uploadTask = uploadBytesResumable(fileRef, file);
-      uploadTask.on('state_changed', null, (error) => {
-        toast.error("Lỗi khi tải ảnh: " + error.message, { id: toastId });
-        setUploadingBg(false);
-      }, async () => {
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const apiKey = process.env.NEXT_PUBLIC_IMGBB_API_KEY || "3bd0a48e757205c93a96b418e45a694f";
+      const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        const downloadURL = data.data.url;
         await updateDoc(doc(db, "Couples", couple.id), { backgroundUrl: downloadURL });
         toast.success("Đổi hình nền thành công!", { id: toastId });
-        setUploadingBg(false);
-      });
+      } else {
+        toast.error("Lỗi ImgBB: " + data.error?.message, { id: toastId });
+      }
     } catch (err: any) {
-       toast.error("Đã xảy ra lỗi: " + err.message, { id: toastId });
+       toast.error("Đã xảy ra lỗi kết nối: " + err.message, { id: toastId });
+    } finally {
        setUploadingBg(false);
     }
   };
@@ -95,20 +101,28 @@ export default function DashboardLayout({
       toast.error("Ảnh quá lớn! Vui lòng chọn ảnh < 2MB.");
       return;
     }
-    const toastId = toast.loading("Đang tải Ảnh Đại Diện...");
+    const toastId = toast.loading("Đang tải Ảnh Đại Diện lên ImgBB...");
     try {
-      const fileRef = ref(storage, `avatars/${user.uid}_${Date.now()}`);
-      const uploadTask = uploadBytesResumable(fileRef, file);
-      uploadTask.on('state_changed', null, (error) => {
-        toast.error("Lỗi khi tải ảnh: " + error.message, { id: toastId });
-      }, async () => {
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const apiKey = process.env.NEXT_PUBLIC_IMGBB_API_KEY || "3bd0a48e757205c93a96b418e45a694f";
+      const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        const downloadURL = data.data.url;
         const updateField = isPartner1 ? "partner1Avatar" : "partner2Avatar";
         await updateDoc(doc(db, "Couples", couple.id), { [updateField]: downloadURL });
         toast.success("Đổi Ảnh đại diện thành công!", { id: toastId });
-      });
+      } else {
+        toast.error("Lỗi ImgBB: " + data.error?.message, { id: toastId });
+      }
     } catch (err: any) {
-       toast.error("Đã xảy ra lỗi: " + err.message, { id: toastId });
+       toast.error("Đã xảy ra lỗi kết nối: " + err.message, { id: toastId });
     }
   };
 
