@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useLoveStory } from '@/context/LoveStoryContext';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 
 export default function DiaryPage() {
@@ -37,6 +37,7 @@ export default function DiaryPage() {
   const handlePost = async () => {
     if(!newText.trim() || !couple?.id || !user) return;
     try {
+      // 1. Gửi bài
       await addDoc(collection(db, `Couples/${couple.id}/Diaries`), {
         authorId: user.uid,
         author: user.uid === couple.partner1Id ? 'Bạn' : 'Người ấy',
@@ -44,6 +45,49 @@ export default function DiaryPage() {
         mood: mood,
         date: serverTimestamp()
       });
+
+      // 2. Cập nhật Streak
+      const isPartner1 = user.uid === couple.partner1Id;
+      const today = new Date();
+      
+      const isSameDay = (d1: Date, d2: Date) => {
+        return d1.getFullYear() === d2.getFullYear() &&
+               d1.getMonth() === d2.getMonth() &&
+               d1.getDate() === d2.getDate();
+      };
+
+      const updates: any = {};
+      
+      if (isPartner1) {
+        updates.lastPostDate_partner1 = serverTimestamp();
+      } else {
+        updates.lastPostDate_partner2 = serverTimestamp();
+      }
+
+      // Kiểm tra xem người kia đã gửi hôm nay chưa
+      const otherPartnerDate = isPartner1 ? couple.lastPostDate_partner2 : couple.lastPostDate_partner1;
+      let otherPostedToday = false;
+      if (otherPartnerDate) {
+        const d = otherPartnerDate.toDate ? otherPartnerDate.toDate() : new Date(otherPartnerDate);
+        otherPostedToday = isSameDay(today, d);
+      }
+
+      let streakUpdatedToday = false;
+      if (couple.lastStreakUpdateDate) {
+         const sd = couple.lastStreakUpdateDate.toDate ? couple.lastStreakUpdateDate.toDate() : new Date(couple.lastStreakUpdateDate);
+         streakUpdatedToday = isSameDay(today, sd);
+      }
+
+      if (otherPostedToday && !streakUpdatedToday) {
+        updates.streak = (couple.streak || 0) + 1;
+        updates.lastStreakUpdateDate = serverTimestamp();
+      }
+
+      // Gửi package cập nhật vào DB
+      if (Object.keys(updates).length > 0) {
+        await updateDoc(doc(db, "Couples", couple.id), updates);
+      }
+
       setNewText("");
       setMood('🥰');
     } catch (error) {

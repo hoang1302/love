@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase/config';
 import { signInAnonymously, onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
 
 interface CoupleData {
   id: string; // Vừa là Pair Code vừa là Doc ID
@@ -12,13 +12,16 @@ interface CoupleData {
   partner1Id: string;
   partner2Id: string | null;
   streak: number;
+  lastPostDate_partner1?: any;
+  lastPostDate_partner2?: any;
+  lastStreakUpdateDate?: any;
 }
 
 interface LoveStoryContextType {
   user: User | null;
   couple: CoupleData | null;
   loading: boolean;
-  createRoom: () => Promise<string>;
+  createRoom: (startDateStr: string) => Promise<string>;
   joinRoom: (code: string) => Promise<boolean>;
 }
 
@@ -65,29 +68,36 @@ export function LoveStoryProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   // Create Room
-  const createRoom = async () => {
+  const createRoom = async (startDateStr: string) => {
     if (!user) throw new Error("Not authenticated");
     const newCode = generatePairCode();
     const coupleRef = doc(db, "Couples", newCode);
     
+    const startObj = new Date(startDateStr);
+    const today = new Date();
+    // Tính số ngày yêu để cấu hình streak ban đầu
+    const diffTime = today.getTime() - startObj.getTime();
+    const initialStreak = diffTime > 0 ? Math.floor(diffTime / (1000 * 60 * 60 * 24)) : 0;
+
     await setDoc(coupleRef, {
-      startDate: serverTimestamp(),
-      anniversaryDate: serverTimestamp(), // Default to today
+      startDate: startObj,
+      anniversaryDate: startObj,
       partner1Id: user.uid,
       partner2Id: null,
-      streak: 0,
+      streak: initialStreak,
+      lastStreakUpdateDate: null,
       createdAt: serverTimestamp()
     });
 
     localStorage.setItem('lovestory_paircode', newCode);
-    // Listen to changes manually will trigger by setting ID in localstorage but requires reload or manual set
+    
     setCouple({
       id: newCode,
-      startDate: new Date(),
-      anniversaryDate: new Date(),
+      startDate: startObj,
+      anniversaryDate: startObj,
       partner1Id: user.uid,
       partner2Id: null,
-      streak: 0
+      streak: initialStreak
     });
     
     return newCode;
@@ -104,7 +114,7 @@ export function LoveStoryProvider({ children }: { children: React.ReactNode }) {
       const data = docSnap.data();
       if (!data.partner2Id && data.partner1Id !== user.uid) {
         // Phòng còn trống ngai thứ 2
-        await setDoc(coupleRef, { partner2Id: user.uid }, { merge: true });
+        await updateDoc(coupleRef, { partner2Id: user.uid });
         localStorage.setItem('lovestory_paircode', cleanCode);
         window.location.reload(); // Refresh to catch snapshot
         return true;

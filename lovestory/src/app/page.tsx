@@ -11,6 +11,11 @@ export default function Home() {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loadingAction, setLoadingAction] = useState(false);
+  
+  // Mặc định là ngày hôm nay dạng YYYY-MM-DD
+  const [startDateStr, setStartDateStr] = useState(() => {
+    return new Date().toISOString().split('T')[0];
+  });
 
   // Nếu đã đăng nhập / có phòng lưu trữ rồi thì chuyển hướng Dashboard
   useEffect(() => {
@@ -38,7 +43,7 @@ export default function Home() {
   const handleCreate = async () => {
     setLoadingAction(true);
     try {
-      await createRoom();
+      await createRoom(startDateStr);
       router.push('/dashboard');
     } catch (err: any) {
       console.error("DEBUG CREATE ROOM ERROR:", err);
@@ -76,6 +81,26 @@ export default function Home() {
             <span>hoặc</span>
           </div>
           
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+            <label style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)' }}>Ngày bắt đầu yêu:</label>
+            <input 
+              type="date"
+              value={startDateStr}
+              onChange={(e) => setStartDateStr(e.target.value)}
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '8px',
+                color: 'white',
+                padding: '12px',
+                fontFamily: 'inherit',
+                outline: 'none',
+                width: '100%',
+                colorScheme: 'dark'
+              }}
+            />
+          </div>
+
           <button className="btn-glass" style={{ width: '100%' }} onClick={handleCreate} disabled={loadingAction}>
             Tạo Mã Cặp Đôi Mới
           </button>
