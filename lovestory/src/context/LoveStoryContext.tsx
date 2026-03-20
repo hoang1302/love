@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase/config';
-import { signInAnonymously, onAuthStateChanged, User } from 'firebase/auth';
+import { signInAnonymously, onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
 
 interface CoupleData {
@@ -23,6 +23,9 @@ interface LoveStoryContextType {
   loading: boolean;
   createRoom: (startDateStr: string) => Promise<string>;
   joinRoom: (code: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  signupWithEmail: (email: string, pass: string) => Promise<void>;
+  loginWithEmail: (email: string, pass: string) => Promise<void>;
 }
 
 const LoveStoryContext = createContext<LoveStoryContextType>({} as LoveStoryContextType);
@@ -38,20 +41,25 @@ export function LoveStoryProvider({ children }: { children: React.ReactNode }) {
   // 1. Listen for Auth State
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-      } else {
-        // Tự động đăng nhập ẩn danh nếu chưa có account
-        try {
-          await signInAnonymously(auth);
-        } catch (error) {
-          console.error("Auth error", error);
-        }
-      }
+      setUser(currentUser);
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
+
+  const signupWithEmail = async (email: string, pass: string) => {
+    await createUserWithEmailAndPassword(auth, email, pass);
+  };
+
+  const loginWithEmail = async (email: string, pass: string) => {
+    await signInWithEmailAndPassword(auth, email, pass);
+  };
+
+  const logout = async () => {
+    await signOut(auth);
+    localStorage.removeItem('lovestory_paircode');
+    setCouple(null);
+  };
 
   // 2. Listen for Room Updates if joined
   useEffect(() => {
@@ -132,7 +140,7 @@ export function LoveStoryProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <LoveStoryContext.Provider value={{ user, couple, loading, createRoom, joinRoom }}>
+    <LoveStoryContext.Provider value={{ user, couple, loading, createRoom, joinRoom, logout, signupWithEmail, loginWithEmail }}>
       {children}
     </LoveStoryContext.Provider>
   );
