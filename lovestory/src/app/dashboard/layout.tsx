@@ -23,6 +23,8 @@ export default function DashboardLayout({
   const [showSettings, setShowSettings] = useState(false);
   const [myName, setMyName] = useState("");
   const [partnerName, setPartnerName] = useState("");
+  const [bgSize, setBgSize] = useState("cover");
+  const [bgPosition, setBgPosition] = useState("center");
   const [uploadingBg, setUploadingBg] = useState(false);
   const [newPasscode, setNewPasscode] = useState("");
   
@@ -136,8 +138,10 @@ export default function DashboardLayout({
     if (showSettings) {
       setMyName(currentMyName);
       setPartnerName(currentPartnerName);
+      setBgSize(couple?.bgSize || "cover");
+      setBgPosition(couple?.bgPosition || "center");
     }
-  }, [showSettings, currentMyName, currentPartnerName]);
+  }, [showSettings, currentMyName, currentPartnerName, couple?.bgSize, couple?.bgPosition]);
 
   const handleLogout = async () => {
     if (window.confirm("Bạn có chắc muốn đăng xuất khỏi tài khoản này?")) {
@@ -148,14 +152,21 @@ export default function DashboardLayout({
 
   const handleSaveNames = async () => {
     await updateNames(myName, partnerName);
+    if (couple?.id) {
+       await updateDoc(doc(db, "Couples", couple.id), {
+          bgSize: bgSize,
+          bgPosition: bgPosition
+       });
+    }
     setShowSettings(false);
   };
 
   const bgStyle = couple?.backgroundUrl ? { 
     backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${couple.backgroundUrl})`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundAttachment: 'fixed'
+    backgroundSize: couple?.bgSize || 'cover',
+    backgroundPosition: couple?.bgPosition || 'center',
+    backgroundAttachment: 'fixed',
+    backgroundRepeat: 'no-repeat'
   } : {};
 
   if (couple?.passcode && !isUnlocked) {
@@ -294,7 +305,7 @@ export default function DashboardLayout({
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)', display: 'block', marginBottom: '6px' }}>Đổi hình nền (Khuyên dùng ảnh dọc 3:4):</label>
+              <label style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)', display: 'block', marginBottom: '6px' }}>Đổi hình nền chung:</label>
               <input 
                 type="file" accept="image/*"
                 onChange={handleBackgroundUpload}
@@ -302,6 +313,27 @@ export default function DashboardLayout({
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px dashed rgba(255,255,255,0.3)', cursor: 'pointer', opacity: uploadingBg ? 0.5 : 1}}
               />
             </div>
+            
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+               <div style={{ flex: 1 }}>
+                 <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: '4px' }}>Kích thước nền:</label>
+                 <select value={bgSize} onChange={e => setBgSize(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', background: 'rgba(0,0,0,0.3)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', outline: 'none' }}>
+                   <option value="cover" style={{color: 'black'}}>Lấp đầy (Cover)</option>
+                   <option value="contain" style={{color: 'black'}}>Vừa vặn (Contain)</option>
+                   <option value="100% 100%" style={{color: 'black'}}>Kéo giãn 100%</option>
+                 </select>
+               </div>
+               <div style={{ flex: 1 }}>
+                 <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: '4px' }}>Vị trí nền:</label>
+                 <select value={bgPosition} onChange={e => setBgPosition(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '6px', background: 'rgba(0,0,0,0.3)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', outline: 'none' }}>
+                   <option value="center" style={{color: 'black'}}>Giữa (Center)</option>
+                   <option value="top" style={{color: 'black'}}>Cạnh trên (Top)</option>
+                   <option value="bottom" style={{color: 'black'}}>Cạnh dưới (Bottom)</option>
+                   <option value="left" style={{color: 'black'}}>Cạnh trái (Left)</option>
+                   <option value="right" style={{color: 'black'}}>Cạnh phải (Right)</option>
+                 </select>
+               </div>
+             </div>
 
             <div style={{ marginBottom: '24px', padding: '12px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', border: '1px solid rgba(255,100,150, 0.2)' }}>
               <label style={{ fontSize: '0.85rem', color: '#ffb2c8', display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>🔐 Mã PIN khóa ứng dụng (4 số):</label>

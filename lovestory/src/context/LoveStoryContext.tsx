@@ -16,6 +16,8 @@ interface CoupleData {
   partner1Avatar?: string;
   partner2Avatar?: string;
   backgroundUrl?: string;
+  bgSize?: string;
+  bgPosition?: string;
   passcode?: string;
   isOnline_partner1?: boolean;
   isOnline_partner2?: boolean;
