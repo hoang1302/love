@@ -1,0 +1,4 @@
+node.exe : Error: Cannot find module '@opentelemetry/api'
+    + CategoryInfo          : NotSpecified: (Error: Cannot 
+  code: 'MODULE_NOT_FOUND',
+Error: Failed to collect page data for /api/cron/daily

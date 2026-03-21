@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { adminDb, adminMessaging } from '@/lib/firebase/admin';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
   try {
     const authHeader = req.headers.get('authorization');
@@ -39,7 +41,7 @@ export async function GET(req: Request) {
           },
           tokens: allTokens,
         };
-        await adminMessaging.sendMulticast(message);
+        await adminMessaging!.sendEachForMulticast(message);
         sentCount++;
       }
     }

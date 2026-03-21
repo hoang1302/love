@@ -121,7 +121,7 @@ export function usePresenceAndTracking() {
              const messaging = getMessaging(app);
              onMessage(messaging, (payload) => {
                 toast(payload.notification?.title + ": " + payload.notification?.body, {
-                   icon: payload.notification?.icon ? <img src={payload.notification.icon} alt="icon" style={{width: 20}}/> : '🔔',
+                   icon: '🔔',
                    duration: 5000
                 });
              });

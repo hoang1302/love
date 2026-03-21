@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { adminMessaging } from '@/lib/firebase/admin';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   try {
     const { tokens, title, body } = await req.json();
@@ -21,7 +23,7 @@ export async function POST(req: Request) {
       tokens: tokens,
     };
 
-    const response = await adminMessaging.sendMulticast(message);
+    const response = await adminMessaging!.sendEachForMulticast(message);
     return NextResponse.json({ success: true, results: response });
   } catch (error: any) {
     console.error("Error sending push:", error);
