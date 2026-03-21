@@ -15,8 +15,10 @@ export const requestPushPermission = async (coupleId: string, isPartner1: boolea
          const supported = await isSupported();
          if (supported) {
             const messaging = getMessaging(app);
+            const registration = await navigator.serviceWorker.ready;
             const currentToken = await getToken(messaging, { 
-               vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY 
+               vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY,
+               serviceWorkerRegistration: registration
             });
             if (currentToken) {
                const tokenField = isPartner1 ? 'fcmTokens_partner1' : 'fcmTokens_partner2';
