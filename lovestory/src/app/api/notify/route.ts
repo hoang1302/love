@@ -17,8 +17,17 @@ export async function POST(req: Request) {
 
     const message = {
       notification: {
-        title,
-        body,
+        title: title,
+        body: body,
+      },
+      webpush: {
+        headers: {
+          Urgency: 'high'
+        },
+        notification: {
+          badge: '/favicon.ico',
+          icon: '/favicon.ico'
+        }
       },
       tokens: tokens,
     };

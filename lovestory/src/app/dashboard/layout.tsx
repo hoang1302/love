@@ -69,6 +69,26 @@ export default function DashboardLayout({
     setNewPasscode("");
   };
 
+  const handleTestPushDelay = () => {
+    toast.success("Đã ghi nhận! Hãy thoát ra màn hình Home của điện thoại NGAY BÂY GIỜ và chờ 5 giây...", { duration: 5000 });
+    setTimeout(() => {
+       const myTokens = isPartner1 ? couple?.fcmTokens_partner1 : couple?.fcmTokens_partner2;
+       if (myTokens && myTokens.length > 0) {
+          fetch('/api/notify', {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({
+                tokens: myTokens,
+                title: 'Test Push Thành Công 🚀',
+                body: 'Hệ thống thông báo đẩy của LoveStory đang chạy ngầm siêu mượt!'
+             })
+          }).catch(console.error);
+       } else {
+          toast.error("Bạn chưa Cấp quyền Thông báo trên thiết bị này!");
+       }
+    }, 5000);
+  };
+
   const handleBackgroundUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !couple?.id) return;
@@ -386,6 +406,16 @@ export default function DashboardLayout({
                   Lưu PIN
                 </button>
               </div>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+               <button 
+                  onClick={handleTestPushDelay}
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'linear-gradient(45deg, #ff4b82, #ffb2c8)', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(255, 75, 130, 0.4)' }}
+               >
+                  🚀 Bắn Test Thông báo (Độ trễ 5 giây)
+               </button>
+               <p style={{ fontSize: '0.75rem', color: 'gray', marginTop: '8px', textAlign: 'center' }}>Bấm nút này rồi ẩn app xuống Home screen để test</p>
             </div>
 
             <div style={{ display: 'flex', gap: '12px' }}>
