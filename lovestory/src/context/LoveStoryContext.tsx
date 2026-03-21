@@ -21,6 +21,8 @@ interface CoupleData {
   passcode?: string;
   isOnline_partner1?: boolean;
   isOnline_partner2?: boolean;
+  fcmTokens_partner1?: string[];
+  fcmTokens_partner2?: string[];
   streak: number;
   lastPostDate_partner1?: any;
   lastPostDate_partner2?: any;

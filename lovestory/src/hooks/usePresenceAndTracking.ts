@@ -2,8 +2,9 @@
 
 import { useEffect, useRef } from 'react';
 import { useLoveStory } from '@/context/LoveStoryContext';
-import { db } from '@/lib/firebase/config';
-import { doc, updateDoc, collection, onSnapshot } from 'firebase/firestore';
+import { db, app } from '@/lib/firebase/config';
+import { doc, updateDoc, collection, onSnapshot, arrayUnion } from 'firebase/firestore';
+import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
 import toast from 'react-hot-toast';
 
 export function usePresenceAndTracking() {
@@ -84,6 +85,49 @@ export function usePresenceAndTracking() {
         }
       });
     });
+
+    // 5. Xin cấp quyền Push Notifications và lưu FCM Token
+    const requestFcmToken = async () => {
+      try {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+             const supported = await isSupported();
+             if (supported) {
+                const messaging = getMessaging(app);
+                const currentToken = await getToken(messaging, { 
+                   vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY 
+                });
+                if (currentToken) {
+                   const tokenField = isPartner1 ? 'fcmTokens_partner1' : 'fcmTokens_partner2';
+                   await updateDoc(coupleRef, {
+                      [tokenField]: arrayUnion(currentToken)
+                   });
+                }
+             }
+          }
+        }
+      } catch (err) {
+        console.warn("Lấy quyền thông báo thất bại:", err);
+      }
+    };
+    
+    requestFcmToken();
+    
+    // Lắng nghe Message khi đang mở App (Foreground)
+    if (typeof window !== 'undefined') {
+       isSupported().then(supported => {
+          if (supported) {
+             const messaging = getMessaging(app);
+             onMessage(messaging, (payload) => {
+                toast(payload.notification?.title + ": " + payload.notification?.body, {
+                   icon: payload.notification?.icon ? <img src={payload.notification.icon} alt="icon" style={{width: 20}}/> : '🔔',
+                   duration: 5000
+                });
+             });
+          }
+       });
+    }
 
     return () => {
       window.removeEventListener('visibilitychange', handleVisibility);
