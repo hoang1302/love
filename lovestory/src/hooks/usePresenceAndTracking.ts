@@ -7,6 +7,34 @@ import { doc, updateDoc, collection, onSnapshot, arrayUnion } from 'firebase/fir
 import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
 import toast from 'react-hot-toast';
 
+export const requestPushPermission = async (coupleId: string, isPartner1: boolean) => {
+  try {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+         const supported = await isSupported();
+         if (supported) {
+            const messaging = getMessaging(app);
+            const currentToken = await getToken(messaging, { 
+               vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY 
+            });
+            if (currentToken) {
+               const tokenField = isPartner1 ? 'fcmTokens_partner1' : 'fcmTokens_partner2';
+               await updateDoc(doc(db, "Couples", coupleId), {
+                  [tokenField]: arrayUnion(currentToken)
+               });
+            }
+         }
+      }
+      return permission;
+    }
+    return 'unsupported';
+  } catch (err) {
+    console.warn("Lấy quyền thông báo thất bại:", err);
+    return 'error';
+  }
+};
+
 export function usePresenceAndTracking() {
   const { couple, user } = useLoveStory();
   const setupRef = useRef(false);
@@ -86,33 +114,8 @@ export function usePresenceAndTracking() {
       });
     });
 
-    // 5. Xin cấp quyền Push Notifications và lưu FCM Token
-    const requestFcmToken = async () => {
-      try {
-        if (typeof window !== 'undefined' && 'Notification' in window) {
-          const permission = await Notification.requestPermission();
-          if (permission === 'granted') {
-             const supported = await isSupported();
-             if (supported) {
-                const messaging = getMessaging(app);
-                const currentToken = await getToken(messaging, { 
-                   vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY 
-                });
-                if (currentToken) {
-                   const tokenField = isPartner1 ? 'fcmTokens_partner1' : 'fcmTokens_partner2';
-                   await updateDoc(coupleRef, {
-                      [tokenField]: arrayUnion(currentToken)
-                   });
-                }
-             }
-          }
-        }
-      } catch (err) {
-        console.warn("Lấy quyền thông báo thất bại:", err);
-      }
-    };
-    
-    requestFcmToken();
+    // 5. Xin cấp quyền Push Notifications ngầm cho Desktop/Android (Safari iOS sẽ tự động huỷ nếu không qua nút bấm)
+    requestPushPermission(couple.id, isPartner1);
     
     // Lắng nghe Message khi đang mở App (Foreground)
     if (typeof window !== 'undefined') {

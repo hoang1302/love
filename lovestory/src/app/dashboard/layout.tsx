@@ -9,7 +9,7 @@ import { db } from '@/lib/firebase/config';
 import { doc, updateDoc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import PasscodeScreen from '@/components/PasscodeScreen';
-import { usePresenceAndTracking } from '@/hooks/usePresenceAndTracking';
+import { usePresenceAndTracking, requestPushPermission } from '@/hooks/usePresenceAndTracking';
 
 export default function DashboardLayout({
   children,
@@ -29,6 +29,13 @@ export default function DashboardLayout({
   const [newPasscode, setNewPasscode] = useState("");
   
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const [notifState, setNotifState] = useState('granted');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotifState(Notification.permission);
+    }
+  }, []);
 
   const isPartner1 = user?.uid === couple?.partner1Id;
   const isTargetOnline = isPartner1 ? couple?.isOnline_partner2 : couple?.isOnline_partner1;
@@ -218,6 +225,34 @@ export default function DashboardLayout({
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {notifState === 'default' && (
+            <button 
+              onClick={async () => {
+                if (couple?.id) {
+                  const perm = await requestPushPermission(couple.id, isPartner1);
+                  setNotifState(perm || 'default');
+                  if (perm === 'granted') {
+                    toast.success("Đã bật Thông báo thành công!");
+                  }
+                }
+              }}
+              className="fade-in"
+              style={{ 
+                background: 'rgba(255, 75, 130, 0.9)', 
+                border: 'none', 
+                borderRadius: '8px', 
+                color: 'white', 
+                padding: '6px 10px',
+                cursor: 'pointer', 
+                fontSize: '0.85rem',
+                fontWeight: 'bold',
+                boxShadow: '0 2px 8px rgba(255, 75, 130, 0.4)'
+              }} 
+            >
+              🔔 Bật Thông báo
+            </button>
+          )}
+
           <div className={styles.streakBadge}>
             🔥 {couple?.streak || 0} Ngày
           </div>
