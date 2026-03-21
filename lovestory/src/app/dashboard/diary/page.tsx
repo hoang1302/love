@@ -100,13 +100,13 @@ export default function DiaryPage() {
         await updateDoc(doc(db, "Couples", couple.id), updates);
       }
       
-      const partnerTokens = isPartner1 ? couple.fcmTokens_partner2 : couple.fcmTokens_partner1;
-      if (partnerTokens && partnerTokens.length > 0) {
+      const partnerSubs = isPartner1 ? couple.nativePushSubs_partner2 : couple.nativePushSubs_partner1;
+      if (partnerSubs && partnerSubs.length > 0) {
          fetch('/api/notify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-               tokens: partnerTokens,
+               subscriptions: partnerSubs,
                title: 'Nhật ký mới 📖',
                body: 'Người ấy vừa viết một dòng nhật ký mới, vào xem ngay!'
             })

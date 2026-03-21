@@ -4,29 +4,41 @@ import { useEffect, useRef } from 'react';
 import { useLoveStory } from '@/context/LoveStoryContext';
 import { db, app } from '@/lib/firebase/config';
 import { doc, updateDoc, collection, onSnapshot, arrayUnion } from 'firebase/firestore';
-import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
 import toast from 'react-hot-toast';
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 export const requestPushPermission = async (coupleId: string, isPartner1: boolean) => {
   try {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
+    if (typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator) {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
-         const supported = await isSupported();
-         if (supported) {
-            const messaging = getMessaging(app);
-            const registration = await navigator.serviceWorker.ready;
-            const currentToken = await getToken(messaging, { 
-               vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY,
-               serviceWorkerRegistration: registration
-            });
-            if (currentToken) {
-               const tokenField = isPartner1 ? 'fcmTokens_partner1' : 'fcmTokens_partner2';
-               await updateDoc(doc(db, "Couples", coupleId), {
-                  [tokenField]: arrayUnion(currentToken)
-               });
-            }
-         }
+         const registration = await navigator.serviceWorker.ready;
+         const publicVapidKey = process.env.NEXT_PUBLIC_NATIVE_VAPID_KEY;
+         if (!publicVapidKey) return 'error';
+         
+         const subscription = await registration.pushManager.subscribe({
+           userVisibleOnly: true,
+           applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+         });
+         
+         const subField = isPartner1 ? 'nativePushSubs_partner1' : 'nativePushSubs_partner2';
+         await updateDoc(doc(db, "Couples", coupleId), {
+            [subField]: arrayUnion(JSON.parse(JSON.stringify(subscription)))
+         });
       }
       return permission;
     }
@@ -120,19 +132,8 @@ export function usePresenceAndTracking() {
     requestPushPermission(couple.id, isPartner1);
     
     // Lắng nghe Message khi đang mở App (Foreground)
-    if (typeof window !== 'undefined') {
-       isSupported().then(supported => {
-          if (supported) {
-             const messaging = getMessaging(app);
-             onMessage(messaging, (payload) => {
-                toast(payload.notification?.title + ": " + payload.notification?.body, {
-                   icon: '🔔',
-                   duration: 5000
-                });
-             });
-          }
-       });
-    }
+    // Removed foreground override so system push happens directly from SW
+
 
     return () => {
       window.removeEventListener('visibilitychange', handleVisibility);

@@ -5,7 +5,7 @@ const withPWA = withPWAInit({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
   workboxOptions: {
-    importScripts: ['/firebase-messaging-sw.js'],
+    importScripts: ['/sw-custom.js'],
   }
 });
 

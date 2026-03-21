@@ -56,15 +56,15 @@ export default function MailboxPage() {
       });
 
       const isPartner1 = user.uid === couple.partner1Id;
-      const partnerTokens = isPartner1 ? couple.fcmTokens_partner2 : couple.fcmTokens_partner1;
-      if (partnerTokens && partnerTokens.length > 0) {
+      const partnerSubs = isPartner1 ? couple.nativePushSubs_partner2 : couple.nativePushSubs_partner1;
+      if (partnerSubs && partnerSubs.length > 0) {
          fetch('/api/notify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-               tokens: partnerTokens,
+               subscriptions: partnerSubs,
                title: 'Thư bí mật mới 💌',
-               body: 'Người ấy vừa gửi cho bạn một bức thư! Hãy xem khi nào bạn được mở nhé.'
+               body: 'Bạn vừa nhận được một lá thư bí mật từ người ấy!'
             })
          }).catch(console.error);
       }

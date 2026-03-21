@@ -23,6 +23,8 @@ interface CoupleData {
   isOnline_partner2?: boolean;
   fcmTokens_partner1?: string[];
   fcmTokens_partner2?: string[];
+  nativePushSubs_partner1?: any[];
+  nativePushSubs_partner2?: any[];
   streak: number;
   lastPostDate_partner1?: any;
   lastPostDate_partner2?: any;

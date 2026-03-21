@@ -72,13 +72,13 @@ export default function DashboardLayout({
   const handleTestPushDelay = () => {
     toast.success("Đã ghi nhận! Hãy thoát ra màn hình Home của điện thoại NGAY BÂY GIỜ và chờ 5 giây...", { duration: 5000 });
     setTimeout(() => {
-       const myTokens = isPartner1 ? couple?.fcmTokens_partner1 : couple?.fcmTokens_partner2;
-       if (myTokens && myTokens.length > 0) {
+       const mySubs = isPartner1 ? couple?.nativePushSubs_partner1 : couple?.nativePushSubs_partner2;
+       if (mySubs && mySubs.length > 0) {
           fetch('/api/notify', {
              method: 'POST',
              headers: { 'Content-Type': 'application/json' },
              body: JSON.stringify({
-                tokens: myTokens,
+                subscriptions: mySubs,
                 title: 'Test Push Thành Công 🚀',
                 body: 'Hệ thống thông báo đẩy của LoveStory đang chạy ngầm siêu mượt!'
              })

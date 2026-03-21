@@ -1,7 +1,19 @@
 import { NextResponse } from 'next/server';
-import { adminDb, adminMessaging } from '@/lib/firebase/admin';
+import { adminDb } from '@/lib/firebase/admin';
+import webpush from 'web-push';
 
 export const dynamic = 'force-dynamic';
+
+const vapidPublicKey = process.env.NEXT_PUBLIC_NATIVE_VAPID_KEY || '';
+const vapidPrivateKey = process.env.NATIVE_VAPID_PRIVATE_KEY || '';
+
+if (vapidPublicKey && vapidPrivateKey) {
+  webpush.setVapidDetails(
+    'mailto:hoang1302@example.com',
+    vapidPublicKey,
+    vapidPrivateKey
+  );
+}
 
 export async function GET(req: Request) {
   try {
@@ -11,7 +23,7 @@ export async function GET(req: Request) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    if (!adminDb || !adminMessaging) {
+    if (!adminDb) {
       return NextResponse.json({ error: 'Firebase Admin not initialized' }, { status: 500 });
     }
 
@@ -28,20 +40,21 @@ export async function GET(req: Request) {
       const diffTime = Math.abs(today.getTime() - startDate.getTime());
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
 
-      const allTokens = [
-        ...(couple.fcmTokens_partner1 || []),
-        ...(couple.fcmTokens_partner2 || [])
-      ].filter(t => t); // Lọc các giá trị rỗng
+      const p1Subs = couple.nativePushSubs_partner1 || [];
+      const p2Subs = couple.nativePushSubs_partner2 || [];
+      const allSubs = [...p1Subs, ...p2Subs];
 
-      if (allTokens.length > 0) {
-        const message = {
-          notification: {
-            title: `Kỷ niệm tình yêu ❤️`,
-            body: `Hôm nay là ngày kỷ niệm thứ ${diffDays} hai bạn ở bên nhau! Mở ứng dụng ngay thôi.`,
-          },
-          tokens: allTokens,
-        };
-        await adminMessaging!.sendEachForMulticast(message);
+      if (allSubs.length > 0) {
+        const payload = JSON.stringify({
+          title: `Chúc mừng kỷ niệm ${diffDays} ngày yêu nhau! 🎉`,
+          body: `Cùng vào LoveStory để xem lại chặng đường của hai bạn nhé ❤️`,
+          url: '/'
+        });
+        
+        await Promise.allSettled(allSubs.map(sub => 
+          webpush.sendNotification(sub, payload).catch(e => console.error("Cron push err", e))
+        ));
+
         sentCount++;
       }
     }
