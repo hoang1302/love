@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
 import { useLoveStory } from '@/context/LoveStoryContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Home() {
   const router = useRouter();
@@ -98,39 +99,85 @@ export default function Home() {
         {!user ? (
           // Auth Screen
           <div className={`glass-panel ${styles.loginBox}`}>
-            <h2>{authMode === 'login' ? 'Đăng Nhập' : 'Tạo Tài Khoản'}</h2>
-            <p style={{ marginTop: '8px', opacity: 0.8, fontSize: '0.9rem' }}>Bạn cần có tài khoản trước khi ghép đôi nhé!</p>
-            
-            <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
-              <input 
-                type="email" 
-                placeholder="Email..." 
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className={styles.codeInput} // Reused styling
-                required
-              />
-              <input 
-                type="password" 
-                placeholder="Mật khẩu..." 
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className={styles.codeInput}
-                required
-              />
-              {error && <span style={{color: '#ff4b82', fontSize: '0.9rem', textAlign: 'center'}}>{error}</span>}
-              <button type="submit" className="btn-primary" disabled={loadingAction} style={{ marginTop: '4px' }}>
-                {loadingAction ? 'Đang tải...' : (authMode === 'login' ? 'Đăng Nhập' : 'Đăng Ký')}
-              </button>
-            </form>
-            
-            <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.9rem' }}>
+            <AnimatePresence mode="wait">
               {authMode === 'login' ? (
-                <p>Chưa có tài khoản? <span style={{color: 'var(--primary-color)', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline'}} onClick={() => {setAuthMode('register'); setError('')}}>Đăng ký ngay</span></p>
+                <motion.div
+                  key="login"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <h2>Đăng Nhập</h2>
+                  <p style={{ marginTop: '8px', opacity: 0.8, fontSize: '0.9rem' }}>Bạn cần có tài khoản trước khi ghép đôi nhé!</p>
+                  
+                  <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+                    <input 
+                      type="email" 
+                      placeholder="Email..." 
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      className={styles.authInput}
+                      required
+                    />
+                    <input 
+                      type="password" 
+                      placeholder="Mật khẩu..." 
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      className={styles.authInput}
+                      required
+                    />
+                    {error && <span style={{color: '#ff4b82', fontSize: '0.9rem', textAlign: 'center'}}>{error}</span>}
+                    <button type="submit" className="btn-primary" disabled={loadingAction} style={{ marginTop: '4px' }}>
+                      {loadingAction ? 'Đang tải...' : 'Đăng Nhập'}
+                    </button>
+                  </form>
+                  
+                  <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.9rem' }}>
+                    <p>Chưa có tài khoản? <span style={{color: 'var(--primary-color)', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline'}} onClick={() => {setAuthMode('register'); setError('')}}>Đăng ký ngay</span></p>
+                  </div>
+                </motion.div>
               ) : (
-                <p>Đã có tài khoản? <span style={{color: 'var(--primary-color)', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline'}} onClick={() => {setAuthMode('login'); setError('')}}>Đăng nhập</span></p>
+                <motion.div
+                  key="register"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <h2>Tạo Tài Khoản</h2>
+                  <p style={{ marginTop: '8px', opacity: 0.8, fontSize: '0.9rem' }}>Bạn cần có tài khoản trước khi ghép đôi nhé!</p>
+                  
+                  <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+                    <input 
+                      type="email" 
+                      placeholder="Email..." 
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      className={styles.authInput}
+                      required
+                    />
+                    <input 
+                      type="password" 
+                      placeholder="Mật khẩu..." 
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      className={styles.authInput}
+                      required
+                    />
+                    {error && <span style={{color: '#ff4b82', fontSize: '0.9rem', textAlign: 'center'}}>{error}</span>}
+                    <button type="submit" className="btn-primary" disabled={loadingAction} style={{ marginTop: '4px' }}>
+                      {loadingAction ? 'Đang tải...' : 'Đăng Ký'}
+                    </button>
+                  </form>
+                  
+                  <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.9rem' }}>
+                    <p>Đã có tài khoản? <span style={{color: 'var(--primary-color)', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline'}} onClick={() => {setAuthMode('login'); setError('')}}>Đăng nhập</span></p>
+                  </div>
+                </motion.div>
               )}
-            </div>
+            </AnimatePresence>
           </div>
         ) : (
           // Room/Pairing Screen
@@ -150,13 +197,14 @@ export default function Home() {
             <div className={styles.inputGroup} style={{ marginTop: '16px' }}>
               <input 
                 type="text" 
-                placeholder="Nhập mã 6 ký tự..." 
-                className={styles.codeInput} 
+                placeholder="MÃ 6 KÝ TỰ" 
+                className={styles.otpInput} 
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
+                maxLength={6}
               />
               {error && <span style={{color: '#ff4b82', fontSize: '0.9rem', textAlign: 'center'}}>{error}</span>}
-              <button className="btn-primary" onClick={handleJoin} disabled={loadingAction}>
+              <button className="btn-primary" onClick={handleJoin} disabled={loadingAction} style={{ marginTop: '8px' }}>
                 {loadingAction ? "Đang kết nối..." : "Kết Nối"}
               </button>
             </div>

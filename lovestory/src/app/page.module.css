@@ -40,7 +40,7 @@
   gap: var(--spacing-sm);
 }
 
-.codeInput {
+.authInput {
   width: 100%;
   padding: 14px;
   border-radius: 12px;
@@ -49,20 +49,49 @@
   color: white;
   font-size: 1rem;
   outline: none;
-  text-align: center;
-  letter-spacing: 2px;
   transition: all 0.2s;
 }
 
-.codeInput::placeholder {
+.authInput::placeholder {
   color: rgba(255, 255, 255, 0.4);
-  letter-spacing: 0;
 }
 
-.codeInput:focus {
+.authInput:focus {
   background: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.5);
   box-shadow: 0 0 10px rgba(255,255,255,0.2);
+}
+
+.otpInput {
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 1.8rem;
+  font-weight: 700;
+  outline: none;
+  text-align: center;
+  letter-spacing: 0.6em;
+  padding-left: calc(16px + 0.3em);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+}
+
+.otpInput:focus {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 15px rgba(255, 75, 130, 0.4);
+  transform: translateY(-2px);
+}
+
+.otpInput::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0;
+  font-size: 1rem;
+  font-weight: 400;
+  text-transform: none;
 }
 
 .divider {

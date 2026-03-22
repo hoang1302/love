@@ -10,6 +10,9 @@ import { doc, updateDoc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import PasscodeScreen from '@/components/PasscodeScreen';
 import { usePresenceAndTracking } from '@/hooks/usePresenceAndTracking';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Heart, BookHeart, Target, Mail } from 'lucide-react';
+import Image from 'next/image';
 
 export default function DashboardLayout({
   children,
@@ -192,7 +195,7 @@ export default function DashboardLayout({
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <div style={{ position: 'relative' }}>
                   {currentMyAvatar ? (
-                    <img src={currentMyAvatar} alt="My Avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
+                    <Image src={currentMyAvatar} alt="My Avatar" width={24} height={24} style={{ borderRadius: '50%', objectFit: 'cover' }} />
                   ) : (
                     <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>{currentMyName.charAt(0)}</div>
                   )}
@@ -205,7 +208,7 @@ export default function DashboardLayout({
                 <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.9)' }}>{currentPartnerName}</span>
                 <div style={{ position: 'relative' }}>
                   {currentPartnerAvatar ? (
-                    <img src={currentPartnerAvatar} alt="Partner Avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
+                    <Image src={currentPartnerAvatar} alt="Partner Avatar" width={24} height={24} style={{ borderRadius: '50%', objectFit: 'cover' }} />
                   ) : (
                     <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>{currentPartnerName.charAt(0)}</div>
                   )}
@@ -363,7 +366,18 @@ export default function DashboardLayout({
       )}
 
       <main className={styles.mainContent}>
-        {children}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            style={{ height: '100%' }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       <nav className={styles.bottomNav}>
@@ -371,24 +385,28 @@ export default function DashboardLayout({
           href="/dashboard" 
           className={`${styles.navItem} ${pathname === '/dashboard' ? styles.active : ''}`}
         >
+          <Heart size={22} color={pathname === '/dashboard' ? 'var(--primary-color)' : 'currentColor'} fill={pathname === '/dashboard' ? 'var(--primary-color)' : 'none'} />
           <span>Kỷ Niệm</span>
         </Link>
         <Link 
           href="/dashboard/diary" 
           className={`${styles.navItem} ${pathname === '/dashboard/diary' ? styles.active : ''}`}
         >
+          <BookHeart size={22} color={pathname === '/dashboard/diary' ? 'var(--primary-color)' : 'currentColor'} fill={pathname === '/dashboard/diary' ? 'var(--primary-color)' : 'none'} />
           <span>Nhật Ký</span>
         </Link>
         <Link 
           href="/dashboard/bucketlist" 
           className={`${styles.navItem} ${pathname === '/dashboard/bucketlist' ? styles.active : ''}`}
         >
+          <Target size={22} color={pathname === '/dashboard/bucketlist' ? 'var(--primary-color)' : 'currentColor'} fill={pathname === '/dashboard/bucketlist' ? 'var(--primary-color)' : 'none'} />
           <span>Mục Tiêu</span>
         </Link>
         <Link 
           href="/dashboard/mailbox" 
           className={`${styles.navItem} ${pathname === '/dashboard/mailbox' ? styles.active : ''}`}
         >
+          <Mail size={22} color={pathname === '/dashboard/mailbox' ? 'var(--primary-color)' : 'currentColor'} fill={pathname === '/dashboard/mailbox' ? 'var(--primary-color)' : 'none'} />
           <span>Thư Bí Mật</span>
         </Link>
       </nav>
