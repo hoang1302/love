@@ -9,7 +9,7 @@ import { db } from '@/lib/firebase/config';
 import { doc, updateDoc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import PasscodeScreen from '@/components/PasscodeScreen';
-import { usePresenceAndTracking, requestPushPermission } from '@/hooks/usePresenceAndTracking';
+import { usePresenceAndTracking } from '@/hooks/usePresenceAndTracking';
 
 export default function DashboardLayout({
   children,
@@ -29,13 +29,6 @@ export default function DashboardLayout({
   const [newPasscode, setNewPasscode] = useState("");
   
   const [isUnlocked, setIsUnlocked] = useState(false);
-  const [notifState, setNotifState] = useState('granted');
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setNotifState(Notification.permission);
-    }
-  }, []);
 
   const isPartner1 = user?.uid === couple?.partner1Id;
   const isTargetOnline = isPartner1 ? couple?.isOnline_partner2 : couple?.isOnline_partner1;
@@ -69,25 +62,6 @@ export default function DashboardLayout({
     setNewPasscode("");
   };
 
-  const handleTestPushDelay = () => {
-    toast.success("Đã ghi nhận! Hãy thoát ra màn hình Home của điện thoại NGAY BÂY GIỜ và chờ 5 giây...", { duration: 5000 });
-    setTimeout(() => {
-       const mySubs = isPartner1 ? couple?.nativePushSubs_partner1 : couple?.nativePushSubs_partner2;
-       if (mySubs && mySubs.length > 0) {
-          fetch('/api/notify', {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({
-                subscriptions: mySubs,
-                title: 'Test Push Thành Công 🚀',
-                body: 'Hệ thống thông báo đẩy của LoveStory đang chạy ngầm siêu mượt!'
-             })
-          }).catch(console.error);
-       } else {
-          toast.error("Bạn chưa Cấp quyền Thông báo trên thiết bị này!");
-       }
-    }, 5000);
-  };
 
   const handleBackgroundUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -243,36 +217,7 @@ export default function DashboardLayout({
             </div>
           )}
         </div>
-        
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {notifState === 'default' && (
-            <button 
-              onClick={async () => {
-                if (couple?.id) {
-                  const perm = await requestPushPermission(couple.id, isPartner1);
-                  setNotifState(perm || 'default');
-                  if (perm === 'granted') {
-                    toast.success("Đã bật Thông báo thành công!");
-                  }
-                }
-              }}
-              className="fade-in"
-              style={{ 
-                background: 'rgba(255, 75, 130, 0.9)', 
-                border: 'none', 
-                borderRadius: '8px', 
-                color: 'white', 
-                padding: '6px 10px',
-                cursor: 'pointer', 
-                fontSize: '0.85rem',
-                fontWeight: 'bold',
-                boxShadow: '0 2px 8px rgba(255, 75, 130, 0.4)'
-              }} 
-            >
-              🔔 Bật Thông báo
-            </button>
-          )}
-
           <div className={styles.streakBadge}>
             🔥 {couple?.streak || 0} Ngày
           </div>
@@ -408,15 +353,6 @@ export default function DashboardLayout({
               </div>
             </div>
 
-            <div style={{ marginBottom: '24px' }}>
-               <button 
-                  onClick={handleTestPushDelay}
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'linear-gradient(45deg, #ff4b82, #ffb2c8)', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(255, 75, 130, 0.4)' }}
-               >
-                  🚀 Bắn Test Thông báo (Độ trễ 5 giây)
-               </button>
-               <p style={{ fontSize: '0.75rem', color: 'gray', marginTop: '8px', textAlign: 'center' }}>Bấm nút này rồi ẩn app xuống Home screen để test</p>
-            </div>
 
             <div style={{ display: 'flex', gap: '12px' }}>
               <button className="btn-glass" style={{ flex: 1 }} onClick={() => setShowSettings(false)}>Hủy</button>

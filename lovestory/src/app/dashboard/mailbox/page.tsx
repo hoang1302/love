@@ -56,19 +56,6 @@ export default function MailboxPage() {
       });
 
       const isPartner1 = user.uid === couple.partner1Id;
-      const partnerSubs = isPartner1 ? couple.nativePushSubs_partner2 : couple.nativePushSubs_partner1;
-      if (partnerSubs && partnerSubs.length > 0) {
-         fetch('/api/notify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-               subscriptions: partnerSubs,
-               title: 'Thư bí mật mới 💌',
-               body: 'Bạn vừa nhận được một lá thư bí mật từ người ấy!'
-            })
-         }).catch(console.error);
-      }
-
       setShowForm(false);
       setTitle("");
       setContent("");
