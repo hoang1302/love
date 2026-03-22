@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useLoveStory } from '@/context/LoveStoryContext';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, increment, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 
 // Helper để parse Firestore Timestamp (tránh lỗi object trắng khi offline)
@@ -19,9 +19,24 @@ const isSameDay = (d1: Date, d2: Date) => {
          d1.getDate() === d2.getDate();
 };
 
+const DiarySkeleton = () => (
+  <div className="glass-panel" style={{ padding: '16px', borderLeft: '4px solid rgba(255,255,255,0.2)', animation: 'pulse 1.5s infinite ease-in-out' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
+        <div style={{ width: '80px', height: '14px', borderRadius: '4px', background: 'rgba(255,255,255,0.2)' }} />
+      </div>
+      <div style={{ width: '60px', height: '12px', borderRadius: '4px', background: 'rgba(255,255,255,0.1)' }} />
+    </div>
+    <div style={{ width: '100%', height: '14px', borderRadius: '4px', background: 'rgba(255,255,255,0.1)', marginBottom: '8px' }} />
+    <div style={{ width: '80%', height: '14px', borderRadius: '4px', background: 'rgba(255,255,255,0.1)' }} />
+  </div>
+);
+
 export default function DiaryPage() {
   const { couple, user, loading } = useLoveStory();
   const [entries, setEntries] = useState<any[]>([]);
+  const [loadingEntries, setLoadingEntries] = useState(true);
   const [newText, setNewText] = useState("");
   const [mood, setMood] = useState("🥰");
   const MOODS = ['🥰', '😆', '😊', '😢', '😡', '😮‍💨'];
@@ -31,12 +46,30 @@ export default function DiaryPage() {
 
   useEffect(() => {
     if (!couple?.id) return;
-    const q = query(collection(db, `Couples/${couple.id}/Diaries`), orderBy('date', 'desc'));
+    setLoadingEntries(true);
+    
+    const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+    const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0, 23, 59, 59, 999);
+    
+    const q = query(
+      collection(db, `Couples/${couple.id}/Diaries`), 
+      where('date', '>=', startOfMonth),
+      where('date', '<=', endOfMonth),
+      orderBy('date', 'desc')
+    );
+    
     const unsub = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(doc => {
         const data = doc.data();
         let dateStr = '';
-        const d = parseFBDate(data.date);
+        let d = parseFBDate(data.date);
+        
+        // Dự phòng local writes khi chưa có server timestamp
+        if (!d) {
+          d = new Date();
+          data.date = d;
+        }
+        
         if (d && !isNaN(d.getTime())) {
           dateStr = d.toLocaleString('vi-VN');
         }
@@ -47,9 +80,10 @@ export default function DiaryPage() {
         };
       });
       setEntries(docs);
+      setLoadingEntries(false);
     });
     return () => unsub();
-  }, [couple]);
+  }, [couple, currentMonth]);
 
   const handlePost = async () => {
     if(!newText.trim() || !couple?.id || !user) return;
@@ -258,42 +292,49 @@ export default function DiaryPage() {
            Nhật ký ngày {selectedDate.toLocaleDateString('vi-VN')}
         </h4>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {displayEntries.map(entry => (
-            <div key={entry.id} className="glass-panel" style={{ padding: '16px', borderLeft: entry.authorId === user?.uid ? '4px solid var(--primary-color)' : '4px solid var(--secondary-color)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 600, color: entry.authorId === user?.uid ? 'var(--primary-color)' : 'var(--secondary-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  {(() => {
-                    const isViewerPartner1 = user?.uid === couple?.partner1Id;
-                    const myName = isViewerPartner1 ? couple?.partner1Name : couple?.partner2Name;
-                    const theirName = isViewerPartner1 ? couple?.partner2Name : couple?.partner1Name;
-                    
-                    const myAvatar = isViewerPartner1 ? couple?.partner1Avatar : couple?.partner2Avatar;
-                    const theirAvatar = isViewerPartner1 ? couple?.partner2Avatar : couple?.partner1Avatar;
-                    
-                    const avatar = entry.authorId === user?.uid ? myAvatar : theirAvatar;
-                    const name = entry.authorId === user?.uid ? (myName || 'Bạn') : (theirName || 'Người ấy');
-                    
-                    return (
-                      <>
-                        {avatar ? (
-                          <img src={avatar} alt="avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
-                        ) : (
-                          <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'white' }}>{name.charAt(0)}</div>
-                        )}
-                        <span>{name}</span>
-                      </>
-                    )
-                  })()}
-                  {entry.mood && <span style={{ marginLeft: '4px' }}>{entry.mood}</span>}
-                </span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  {entry.dateStr}
-                </span>
+          {loadingEntries ? (
+            <>
+              <DiarySkeleton />
+              <DiarySkeleton />
+            </>
+          ) : (
+            displayEntries.map(entry => (
+              <div key={entry.id} className="glass-panel" style={{ padding: '16px', borderLeft: entry.authorId === user?.uid ? '4px solid var(--primary-color)' : '4px solid var(--secondary-color)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontWeight: 600, color: entry.authorId === user?.uid ? 'var(--primary-color)' : 'var(--secondary-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {(() => {
+                      const isViewerPartner1 = user?.uid === couple?.partner1Id;
+                      const myName = isViewerPartner1 ? couple?.partner1Name : couple?.partner2Name;
+                      const theirName = isViewerPartner1 ? couple?.partner2Name : couple?.partner1Name;
+                      
+                      const myAvatar = isViewerPartner1 ? couple?.partner1Avatar : couple?.partner2Avatar;
+                      const theirAvatar = isViewerPartner1 ? couple?.partner2Avatar : couple?.partner1Avatar;
+                      
+                      const avatar = entry.authorId === user?.uid ? myAvatar : theirAvatar;
+                      const name = entry.authorId === user?.uid ? (myName || 'Bạn') : (theirName || 'Người ấy');
+                      
+                      return (
+                        <>
+                          {avatar ? (
+                            <img src={avatar} alt="avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
+                          ) : (
+                            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'white' }}>{name.charAt(0)}</div>
+                          )}
+                          <span>{name}</span>
+                        </>
+                      )
+                    })()}
+                    {entry.mood && <span style={{ marginLeft: '4px' }}>{entry.mood}</span>}
+                  </span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    {entry.dateStr}
+                  </span>
+                </div>
+                <p style={{ lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{entry.text}</p>
               </div>
-              <p style={{ lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{entry.text}</p>
-            </div>
-          ))}
-          {displayEntries.length === 0 && <p style={{textAlign: 'center', color: 'rgba(255,255,255,0.4)', marginTop: '20px'}}>Không có dòng nhật ký nào trong ngày này.</p>}
+            ))
+          )}
+          {!loadingEntries && displayEntries.length === 0 && <p style={{textAlign: 'center', color: 'rgba(255,255,255,0.4)', marginTop: '20px'}}>Không có dòng nhật ký nào trong ngày này.</p>}
         </div>
       </div>
     </div>
