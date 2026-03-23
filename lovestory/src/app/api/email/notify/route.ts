@@ -37,9 +37,6 @@ export async function POST(req: Request) {
             Mở Ứng Dụng Ngay
           </a>
         </div>
-        <p style="font-size: 11px; color: #999; margin-top: 30px;">
-          Tin nhắn này được tự động gửi từ Trợ lý NoteLove. Không cần trả lời email này.
-        </p>
       </div>
     `;
 
