@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; background-color: #fce4ec; padding: 20px; border-radius: 12px; max-width: 500px; margin: 0 auto; text-align: center;">
-        <h2 style="color: #d81b60;">💌 LoveStory Notification</h2>
+        <h2 style="color: #d81b60;">💌 NoteLove Notification</h2>
         <p style="font-size: 16px; color: #333;"><strong>${title}</strong></p>
         <p style="font-size: 14px; color: #555; background: rgba(255,255,255,0.7); padding: 15px; border-radius: 8px; font-style: italic;">
           "${body}"
@@ -38,13 +38,13 @@ export async function POST(req: Request) {
           </a>
         </div>
         <p style="font-size: 11px; color: #999; margin-top: 30px;">
-          Tin nhắn này được tự động gửi từ Trợ lý LoveStory. Không cần trả lời email này.
+          Tin nhắn này được tự động gửi từ Trợ lý NoteLove. Không cần trả lời email này.
         </p>
       </div>
     `;
 
     const mailOptions = {
-      from: `"Hệ Thống LoveStory" <${SMTP_USER}>`,
+      from: `"NoteLove" <${SMTP_USER}>`,
       to: recipientEmail,
       subject: title,
       html: htmlContent,

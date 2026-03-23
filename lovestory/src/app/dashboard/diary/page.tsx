@@ -136,13 +136,14 @@ export default function DiaryPage() {
       
       const targetEmail = isPartner1 ? couple.partner2Email : couple.partner1Email;
       if (targetEmail) {
+        const myName = isPartner1 ? (couple.partner1Name || "Bạn") : (couple.partner2Name || "Bạn");
         fetch('/api/email/notify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
              recipientEmail: targetEmail,
-             title: "Người ấy vừa viết Nhật ký mới! 📖",
-             body: newText,
+             title: "Nhật ký đến",
+             body: `${myName} đã viết nhật ký nee`,
              url: window.location.origin + "/dashboard/diary"
           })
         }).catch(e => console.error("Gửi mail thất bại", e));
