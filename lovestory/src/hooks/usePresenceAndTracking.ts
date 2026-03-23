@@ -6,7 +6,44 @@ import { db, app } from '@/lib/firebase/config';
 import { doc, updateDoc, collection, onSnapshot, arrayUnion } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
+export const requestPushPermission = async (coupleId: string, isPartner1: boolean) => {
+  try {
+    if (typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator) {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+         const registration = await navigator.serviceWorker.ready;
+         const publicVapidKey = process.env.NEXT_PUBLIC_NATIVE_VAPID_KEY;
+         if (!publicVapidKey) return 'error';
+         
+         const subscription = await registration.pushManager.subscribe({
+           userVisibleOnly: true,
+           applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+         });
+         
+         const subField = isPartner1 ? 'nativePushSubs_partner1' : 'nativePushSubs_partner2';
+         await updateDoc(doc(db, "Couples", coupleId), {
+            [subField]: arrayUnion(JSON.parse(JSON.stringify(subscription)))
+         });
+      }
+      return permission;
+    }
+    return 'unsupported';
+  } catch (err) {
+    console.warn("Lấy quyền thông báo thất bại:", err);
+    return 'error';
+  }
+};
 
 export function usePresenceAndTracking() {
   const { couple, user } = useLoveStory();
@@ -20,6 +57,14 @@ export function usePresenceAndTracking() {
     const myOnlineField = isPartner1 ? 'isOnline_partner1' : 'isOnline_partner2';
     const coupleRef = doc(db, "Couples", couple.id);
 
+    // Tẩy chấm đỏ (App Badge) ngay lần load trang đầu tiên
+    if (typeof navigator !== 'undefined' && 'clearAppBadge' in navigator) {
+       (navigator as any).clearAppBadge().catch(console.error);
+    }
+    // Gửi yêu cầu Native Push
+    requestPushPermission(couple.id, isPartner1);
+
+
     // 1. Cập nhật trạng thái Online
     const updatePresence = (status: boolean) => {
       updateDoc(coupleRef, { [myOnlineField]: status }).catch(() => {});
@@ -28,7 +73,13 @@ export function usePresenceAndTracking() {
     updatePresence(true);
 
     const handleVisibility = () => {
-      updatePresence(document.visibilityState === 'visible');
+      const isVisible = document.visibilityState === 'visible';
+      if (isVisible) {
+         if (typeof navigator !== 'undefined' && 'clearAppBadge' in navigator) {
+            (navigator as any).clearAppBadge().catch(console.error);
+         }
+      }
+      updatePresence(isVisible);
     };
 
     window.addEventListener('visibilitychange', handleVisibility);
