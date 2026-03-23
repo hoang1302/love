@@ -56,6 +56,20 @@ export default function MailboxPage() {
       });
 
       const isPartner1 = user.uid === couple.partner1Id;
+      const targetEmail = isPartner1 ? couple.partner2Email : couple.partner1Email;
+      if (targetEmail) {
+        fetch('/api/email/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+             recipientEmail: targetEmail,
+             title: "Bạn vừa nhận được 1 Thư bí mật mới! 💌",
+             body: "Người ấy đã gửi một lá thư bí mật được khoá đến ngày " + new Date(lockDate).toLocaleDateString('vi-VN'),
+             url: window.location.origin + "/dashboard/mailbox"
+          })
+        }).catch(e => console.error("Gửi mail thất bại", e));
+      }
+
       setShowForm(false);
       setTitle("");
       setContent("");

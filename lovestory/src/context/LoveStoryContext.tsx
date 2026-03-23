@@ -11,6 +11,8 @@ interface CoupleData {
   anniversaryDate: any;
   partner1Id: string;
   partner2Id: string | null;
+  partner1Email?: string;
+  partner2Email?: string;
   partner1Name?: string;
   partner2Name?: string;
   partner1Avatar?: string;
@@ -142,6 +144,7 @@ export function LoveStoryProvider({ children }: { children: React.ReactNode }) {
       anniversaryDate: startObj,
       partner1Id: user.uid,
       partner2Id: null,
+      partner1Email: user.email || null,
       partner1Name: "Bạn 1",
       partner2Name: "Bạn 2",
       streak: initialStreak,
@@ -176,7 +179,7 @@ export function LoveStoryProvider({ children }: { children: React.ReactNode }) {
       const data = docSnap.data();
       if (!data.partner2Id && data.partner1Id !== user.uid) {
         // Phòng còn trống ngai thứ 2
-        await updateDoc(coupleRef, { partner2Id: user.uid });
+        await updateDoc(coupleRef, { partner2Id: user.uid, partner2Email: user.email || null });
         localStorage.setItem('lovestory_paircode', cleanCode);
         window.location.reload(); // Refresh to catch snapshot
         return true;

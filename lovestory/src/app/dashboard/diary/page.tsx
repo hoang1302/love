@@ -134,6 +134,19 @@ export default function DiaryPage() {
         await updateDoc(doc(db, "Couples", couple.id), updates);
       }
       
+      const targetEmail = isPartner1 ? couple.partner2Email : couple.partner1Email;
+      if (targetEmail) {
+        fetch('/api/email/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+             recipientEmail: targetEmail,
+             title: "Người ấy vừa viết Nhật ký mới! 📖",
+             body: newText,
+             url: window.location.origin + "/dashboard/diary"
+          })
+        }).catch(e => console.error("Gửi mail thất bại", e));
+      }
 
       setNewText("");
       setMood('🥰');
