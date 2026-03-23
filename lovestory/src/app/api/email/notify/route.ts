@@ -26,17 +26,8 @@ export async function POST(req: Request) {
     });
 
     const htmlContent = `
-      <div style="font-family: Arial, sans-serif; background-color: #fce4ec; padding: 20px; border-radius: 12px; max-width: 500px; margin: 0 auto; text-align: center;">
-        <h2 style="color: #d81b60;">💌 NoteLove Notification</h2>
-        <p style="font-size: 16px; color: #333;"><strong>${title}</strong></p>
-        <p style="font-size: 14px; color: #555; background: rgba(255,255,255,0.7); padding: 15px; border-radius: 8px; font-style: italic;">
-          "${body}"
-        </p>
-        <div style="margin-top: 25px;">
-          <a href="${url || 'https://lovestory.io'}" style="background-color: #e91e63; color: white; text-decoration: none; padding: 12px 24px; border-radius: 20px; font-weight: bold; font-size: 14px; display: inline-block;">
-            Mở Ứng Dụng Ngay
-          </a>
-        </div>
+      <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333; padding: 10px;">
+        ${body}
       </div>
     `;
 
