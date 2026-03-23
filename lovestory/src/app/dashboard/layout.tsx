@@ -26,6 +26,7 @@ export default function DashboardLayout({
   const [showSettings, setShowSettings] = useState(false);
   const [myName, setMyName] = useState("");
   const [partnerName, setPartnerName] = useState("");
+  const [partnerEmail, setPartnerEmail] = useState("");
   const [bgSize, setBgSize] = useState("cover");
   const [bgPosition, setBgPosition] = useState("center");
   const [uploadingBg, setUploadingBg] = useState(false);
@@ -140,12 +141,13 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (showSettings) {
-      setMyName(currentMyName);
-      setPartnerName(currentPartnerName);
-      setBgSize(couple?.bgSize || "cover");
-      setBgPosition(couple?.bgPosition || "center");
+       setMyName(currentMyName);
+       setPartnerName(currentPartnerName);
+       setPartnerEmail(isPartner1 ? (couple?.partner2Email || "") : (couple?.partner1Email || ""));
+       setBgSize(couple?.bgSize || "cover");
+       setBgPosition(couple?.bgPosition || "center");
     }
-  }, [showSettings, currentMyName, currentPartnerName, couple?.bgSize, couple?.bgPosition]);
+  }, [showSettings, currentMyName, currentPartnerName, couple?.bgSize, couple?.bgPosition, couple?.partner1Email, couple?.partner2Email, isPartner1]);
 
   const handleLogout = async () => {
     if (window.confirm("Bạn có chắc muốn đăng xuất khỏi tài khoản này?")) {
@@ -157,9 +159,11 @@ export default function DashboardLayout({
   const handleSaveNames = async () => {
     await updateNames(myName, partnerName);
     if (couple?.id) {
+       const updateEmailField = isPartner1 ? "partner2Email" : "partner1Email";
        await updateDoc(doc(db, "Couples", couple.id), {
           bgSize: bgSize,
-          bgPosition: bgPosition
+          bgPosition: bgPosition,
+          [updateEmailField]: partnerEmail
        });
     }
     setShowSettings(false);
@@ -305,6 +309,19 @@ export default function DashboardLayout({
                 value={partnerName} onChange={e => setPartnerName(e.target.value)}
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', outline: 'none'}}
               />
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)', display: 'block', marginBottom: '6px' }}>💌 Email nhận thông báo của người ấy:</label>
+              <input 
+                type="email"
+                placeholder="Ví dụ: nguoiay@gmail.com"
+                value={partnerEmail} onChange={e => setPartnerEmail(e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.1)', border: '1px dashed rgba(255,178,200,0.8)', color: 'white', outline: 'none'}}
+              />
+              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: '8px', fontStyle: 'italic', lineHeight: '1.4' }}>
+                *Sếp có thể nhập trực tiếp Email của đối tác vào đây để ứng dụng tự động gửi thư báo tình yêu kể cả khi người ấy chưa cài App bao giờ. Nếu rỗng, người ấy phải tự tải mở App lần đầu để hệ thống bắt tín hiệu.
+              </p>
             </div>
 
             <div style={{ marginBottom: '16px' }}>
